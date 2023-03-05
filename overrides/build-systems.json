@@ -12872,6 +12872,9 @@
   "pyproject-flake8": [
     "flit-core"
   ],
+  "pyproject-hooks": [
+    "flit-core"
+  ],
   "pyproject-metadata": [
     "setuptools"
   ],
