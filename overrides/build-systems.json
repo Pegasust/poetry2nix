@@ -924,8 +924,26 @@
     "setuptools"
   ],
   "argon2-cffi": [
-    "flitBuildHook",
-    "setuptools"
+    {
+      "buildSystem": "flitBuildHook",
+      "until": "23.1.0"
+    },
+    {
+      "buildSystem": "setuptools",
+      "until": "23.1.0"
+    },
+    {
+      "buildSystem": "hatchling",
+      "from": "23.1.0"
+    },
+    {
+      "buildSystem": "hatch-fancy-pypi-readme",
+      "from": "23.1.0"
+    },
+    {
+      "buildSystem": "hatch-vcs",
+      "from": "23.1.0"
+    }
   ],
   "argon2-cffi-bindings": [
     "setuptools",
@@ -3032,6 +3050,9 @@
   "clickhouse-cli": [
     "setuptools"
   ],
+  "clickhouse-connect": [
+    "setuptools"
+  ],
   "clickhouse-driver": [
     "setuptools"
   ],
@@ -3723,6 +3744,7 @@
     "setuptools"
   ],
   "dataclasses-json": [
+    "poetry-core",
     "setuptools"
   ],
   "dataclasses-serialization": [
@@ -3910,6 +3932,9 @@
     "setuptools-scm"
   ],
   "deform": [
+    "setuptools"
+  ],
+  "defusedcsv": [
     "setuptools"
   ],
   "defusedxml": [
@@ -4215,6 +4240,9 @@
   "django-bootstrap-form": [
     "setuptools"
   ],
+  "django-bootstrap4": [
+    "setuptools"
+  ],
   "django-cache-memoize": [
     "setuptools"
   ],
@@ -4254,6 +4282,9 @@
   "django-configurations": [
     "setuptools",
     "setuptools-scm"
+  ],
+  "django-context-decorator": [
+    "setuptools"
   ],
   "django-contrib-comments": [
     "setuptools"
@@ -4330,10 +4361,16 @@
     "setuptools",
     "setuptools-scm"
   ],
+  "django-hierarkey": [
+    "setuptools"
+  ],
   "django-hijack": [
     "setuptools"
   ],
   "django-htmx": [
+    "setuptools"
+  ],
+  "django-i18nfield": [
     "setuptools"
   ],
   "django-ipware": [
@@ -4342,7 +4379,13 @@
   "django-jinja": [
     "setuptools"
   ],
+  "django-jquery-js": [
+    "setuptools"
+  ],
   "django-js-asset": [
+    "setuptools"
+  ],
+  "django-libsass": [
     "setuptools"
   ],
   "django-logentry-admin": [
@@ -4439,6 +4482,9 @@
     "setuptools"
   ],
   "django-rq": [
+    "setuptools"
+  ],
+  "django-scopes": [
     "setuptools"
   ],
   "django-sesame": [
@@ -4915,6 +4961,7 @@
     "setuptools"
   ],
   "einops": [
+    "hatchling",
     "setuptools"
   ],
   "eiswarnung": [
@@ -7055,6 +7102,9 @@
     "setuptools",
     "setuptools-scm"
   ],
+  "hnswlib": [
+    "setuptools"
+  ],
   "hocr-tools": [
     "setuptools"
   ],
@@ -7561,6 +7611,9 @@
     "setuptools"
   ],
   "inkex": [
+    "setuptools"
+  ],
+  "inlinestyler": [
     "setuptools"
   ],
   "inotify": [
@@ -8464,6 +8517,12 @@
   ],
   "labmath": [
     "setuptools"
+  ],
+  "langchain": [
+    "poetry-core"
+  ],
+  "langchainplus-sdk": [
+    "poetry-core"
   ],
   "langcodes": [
     "poetry-core",
@@ -10553,6 +10612,9 @@
   "openapi-python-client": [
     "poetry-core"
   ],
+  "openapi-schema-pydantic": [
+    "setuptools"
+  ],
   "openapi-schema-validator": [
     "poetry-core",
     "setuptools"
@@ -10997,6 +11059,9 @@
     "setuptools"
   ],
   "pagelabels": [
+    "setuptools"
+  ],
+  "paginate": [
     "setuptools"
   ],
   "paho-mqtt": [
@@ -11484,6 +11549,9 @@
   "pillow": [
     "setuptools"
   ],
+  "pillow-heif": [
+    "setuptools"
+  ],
   "pillow-simd": [
     "setuptools"
   ],
@@ -11722,6 +11790,9 @@
   "policyuniverse": [
     "setuptools"
   ],
+  "polyfactory": [
+    "poetry-core"
+  ],
   "polyline": [
     "setuptools"
   ],
@@ -11763,6 +11834,9 @@
     "setuptools"
   ],
   "posix-ipc": [
+    "setuptools"
+  ],
+  "posthog": [
     "setuptools"
   ],
   "pot": [
@@ -12039,6 +12113,9 @@
     "setuptools"
   ],
   "publicsuffix2": [
+    "setuptools"
+  ],
+  "publicsuffixlist": [
     "setuptools"
   ],
   "pubnub": [
@@ -12714,6 +12791,9 @@
     "setuptools"
   ],
   "pyepsg": [
+    "setuptools"
+  ],
+  "pyepsilla": [
     "setuptools"
   ],
   "pyerfa": [
@@ -13406,6 +13486,9 @@
     "setuptools"
   ],
   "pynetgear": [
+    "setuptools"
+  ],
+  "pyngrok": [
     "setuptools"
   ],
   "pynina": [
@@ -15693,6 +15776,9 @@
   "readthedocs-sphinx-ext": [
     "setuptools"
   ],
+  "readtime": [
+    "setuptools"
+  ],
   "rebulk": [
     "setuptools"
   ],
@@ -16197,6 +16283,9 @@
   "ruffus": [
     "setuptools"
   ],
+  "rules": [
+    "setuptools"
+  ],
   "runway-python": [
     "setuptools"
   ],
@@ -16254,6 +16343,9 @@
     "setuptools"
   ],
   "safeio": [
+    "setuptools"
+  ],
+  "safetensors": [
     "setuptools"
   ],
   "safety": [
@@ -18171,6 +18263,9 @@
   "tika": [
     "setuptools"
   ],
+  "tiktoken": [
+    "setuptools"
+  ],
   "tikzplotlib": [
     "flit-core",
     "setuptools"
@@ -18668,6 +18763,9 @@
   "types-aiobotocore-cloudformation": [
     "setuptools"
   ],
+  "types-aiobotocore-dynamodb": [
+    "setuptools"
+  ],
   "types-aiobotocore-ec2": [
     "setuptools"
   ],
@@ -19070,6 +19168,9 @@
       "buildSystem": "hatchling",
       "from": "2.0.2"
     },
+    "setuptools"
+  ],
+  "urlman": [
     "setuptools"
   ],
   "urlpy": [
@@ -19532,7 +19633,14 @@
     "setuptools"
   ],
   "werkzeug": [
-    "setuptools"
+    {
+      "buildSystem": "setuptools",
+      "until": "2.3.7"
+    },
+    {
+      "buildSystem": "flit-core",
+      "from": "2.3.7"
+    }
   ],
   "west": [
     "setuptools"
@@ -19596,7 +19704,14 @@
     "setuptools"
   ],
   "willow": [
-    "setuptools"
+    {
+      "buildSystem": "setuptools",
+      "until": "1.6"
+    },
+    {
+      "buildSystem": "flit-core",
+      "from": "1.6"
+    }
   ],
   "winacl": [
     "setuptools"

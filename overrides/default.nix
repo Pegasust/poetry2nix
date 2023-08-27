@@ -345,8 +345,11 @@ lib.composeManyExtensions [
       );
 
       contourpy = super.contourpy.overridePythonAttrs (
-        old: {
+        old: lib.optionalAttrs (!(old.src.isWheel or false)) {
           buildInputs = (old.buildInputs or [ ]) ++ [ self.pybind11 ];
+          nativeBuildInputs = (old.nativeBuildInputs or [ ])
+            ++ lib.optionals (lib.versionAtLeast old.version "1.1.0") [ self.meson-python pkg-config ];
+          dontUseMesonConfigure = true;
         }
       );
 
@@ -1018,7 +1021,7 @@ lib.composeManyExtensions [
       });
 
       jsondiff =
-        if lib.versionOlder "2.0.0"
+        if lib.versionOlder super.jsondiff.version "2.0.0"
         then
           super.jsondiff.overridePythonAttrs
             (
@@ -1751,6 +1754,14 @@ lib.composeManyExtensions [
             ++ lib.optionals (lib.versionAtLeast old.version "7.1.0") [ xorg.libxcb ]
             ++ lib.optionals (self.isPyPy) [ tk xorg.libX11 ];
           preConfigure = lib.optional (old.format != "wheel") preConfigure;
+        }
+      );
+
+      pillow-heif = super.pillow-heif.overridePythonAttrs (
+        old: {
+          buildInputs = with pkgs; (old.buildInputs or [ ]) ++ [
+            libheif
+          ];
         }
       );
 
@@ -2581,6 +2592,17 @@ lib.composeManyExtensions [
         postPatch = ''
           substituteInPlace soundfile.py --replace "_find_library('sndfile')" "'${pkgs.libsndfile.out}/lib/libsndfile${stdenv.hostPlatform.extensions.sharedLibrary}'"
         '';
+      });
+
+      sqlmodel = super.sqlmodel.overridePythonAttrs (old: {
+        patchPhase = builtins.concatStringsSep "\n" [
+          (old.patchPhase or "")
+          # sqlmodel's pyproject.toml lists version = "0" that it changes during a build phase
+          # If this isn't fixed, it gets a vague "ERROR: No matching distribution for sqlmodel..." error
+          ''
+            substituteInPlace "pyproject.toml" --replace 'version = "0"' 'version = "${old.version}"'
+          ''
+        ];
       });
 
       suds = super.suds.overridePythonAttrs (old: {
