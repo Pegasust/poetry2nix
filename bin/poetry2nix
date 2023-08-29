@@ -52,9 +52,35 @@ class UrlPackage(Package):
             );""" % (self.name, self.name, self.source["url"], sha256))
 
 
+class WheelPackage(Package):
+    def fetch(self) -> Tuple[Package, subprocess.CompletedProcess]:
+        return (
+            self,
+            subprocess.run(
+                ["nix-prefetch-url", self.source["url"]],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            ),
+        )
+
+    def expression(self, output: str) -> str:
+        sha256 = output.rstrip()
+        return textwrap.dedent("""
+            %s = super.%s.overridePythonAttrs (
+              _: {
+                src = (pkgs.fetchurl {
+                  url = "%s";
+                  sha256 = "%s";
+                }) // {isWheel = true;};
+              }
+            );""" % (self.name, self.name, self.source["url"], sha256))
+
+
 class GitPackage(Package):
     def fetch(self) -> Tuple[Package, subprocess.CompletedProcess]:
-        reference = self.source.get("resolved_reference", self.source["reference"])
+        reference = self.source.get(
+            "resolved_reference", self.source["reference"])
 
         return (
             self,
@@ -93,7 +119,8 @@ def parse_args() -> argparse.Namespace:
     subparsers = argparser.add_subparsers(dest="subcommand")
     subparsers.required = True
 
-    parser_lock = subparsers.add_parser("lock", help="Generate overrides for git hashes",)
+    parser_lock = subparsers.add_parser(
+        "lock", help="Generate overrides for git hashes",)
     parser_lock.add_argument(
         "--lock", default="poetry.lock", help="Path to input poetry.lock",
     )
@@ -121,7 +148,9 @@ def main() -> None:
             if source_type == "git":
                 pkgs.append(GitPackage(pkg))
             elif source_type == "url":
-                pkgs.append(UrlPackage(pkg))
+                pack = WheelPackage(pkg) if pkg["source"]["url"].endswith(
+                    "whl") else UrlPackage(pkg)
+                pkgs.append(pack)
 
     with ThreadPoolExecutor() as e:
         futures = []
