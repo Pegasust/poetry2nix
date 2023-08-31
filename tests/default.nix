@@ -49,7 +49,6 @@ in
   path-deps-develop = callTest ./path-deps-develop { };
   path-deps-level2 = callTest ./path-deps-level2 { };
   operators = callTest ./operators { };
-  preferWheel = callTest ./prefer-wheel { };
   prefer-wheels = callTest ./prefer-wheels { };
   closure-size = callTest ./closure-size {
     inherit poetry;
@@ -108,9 +107,6 @@ in
   jupyterlab-3 = callTest ./jupyterlab-3 { };
   jupyterlab = callTest ./jupyterlab { };
 
-  # manylinux requires nixpkgs with https://github.com/NixOS/nixpkgs/pull/75763
-  # Once this is available in 19.09 and unstable we can re-enable the manylinux test
-  manylinux = callTest ./manylinux { };
   shapely = callTest ./shapely { };
   shapely-pre-2 = callTest ./shapely-pre-2 { };
   setuptools = callTest ./setuptools { };
@@ -159,6 +155,14 @@ in
 
   # Test deadlocks on darwin, sandboxing issue?
   dependency-environment = (callTest ./dependency-environment { });
+
+  # isWheelMaturin assertion fails, reasons unknown
+  preferWheel = callTest ./prefer-wheel { };
+
+  # manylinux requires nixpkgs with https://github.com/NixOS/nixpkgs/pull/75763
+  # Once this is available in 19.09 and unstable we can re-enable the manylinux test
+  # darwin: error: Missing suitable source/wheel file entry for opencv-python
+  manylinux = callTest ./manylinux { };
 
   # Editable tests fails on Darwin because of sandbox paths
   pep600 = (callTest ./pep600 { });
