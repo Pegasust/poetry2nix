@@ -928,18 +928,7 @@
     "setuptools"
   ],
   "argcomplete": [
-    {
-      "buildSystem": "setuptools"
-    },
-    {
-      "buildSystem": "wheel",
-      "from": "3.1.0",
-      "until": "3.1.1"
-    },
-    {
-      "buildSystem": "setuptools_scm",
-      "from": "3.1.0"
-    }
+    "setuptools"
   ],
   "argh": [
     "setuptools"
