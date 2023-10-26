@@ -61,8 +61,6 @@ poetry2nix.mkPoetryApplication {
 }
 ```
 
-See [./pkgs/poetry/default.nix](./pkgs/poetry/default.nix) for a working example.
-
 #### Dependency environment
 
 The resulting derivation also has the passthru attribute `dependencyEnv`, which is an environment with a python interpreter, all non-development dependencies and your application.
@@ -391,6 +389,8 @@ To test with a specific channel:
 ```bash
 nix-build --expr 'with import <unstable> {}; callPackage ./tests/default.nix {}'
 ```
+
+To sort `overrides/build-systems.json` according to the [`sort-build-systems` job](.github/workflows/ci.yml), patch the source with the output of the "Check format" step, like this: `nix-shell [omitted] | patch -p0`.
 
 ## Contact
 We have a Matrix room at [#poetry2nix:blad.is](https://matrix.to/#/#poetry2nix:blad.is).

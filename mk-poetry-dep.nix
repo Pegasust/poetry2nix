@@ -3,11 +3,13 @@
 , python
 , buildPythonPackage
 , poetryLib
-, evalPep508
+, pep508Env
+, pyproject-nix
 }:
 { name
 , version
 , pos ? __curPos
+, extras ? [ ]
 , files
 , source
 , dependencies ? { }
@@ -27,21 +29,21 @@ pythonPackages.callPackage
     }@args:
     let
       inherit (python) stdenv;
-      inherit (poetryLib) isCompatible getManyLinuxDeps fetchFromLegacy fetchFromPypi normalizePackageName;
+      inherit (pyproject-nix.lib.pypa) normalizePackageName;
+      inherit (poetryLib) isCompatible getManyLinuxDeps fetchFromLegacy fetchFromPypi;
 
       inherit (import ./pep425.nix {
-        inherit lib poetryLib python stdenv;
+        inherit lib python stdenv pyproject-nix;
       }) selectWheel
         ;
       fileCandidates =
         let
-          supportedRegex = ("^.*(" + builtins.concatStringsSep "|" supportedExtensions + ")");
+          supportedRegex = "^.*(" + builtins.concatStringsSep "|" supportedExtensions + ")";
           matchesVersion = fname: builtins.match ("^.*" + builtins.replaceStrings [ "." "+" ] [ "\\." "\\+" ] version + ".*$") fname != null;
           hasSupportedExtension = fname: builtins.match supportedRegex fname != null;
           isCompatibleEgg = fname: ! lib.strings.hasSuffix ".egg" fname || lib.strings.hasSuffix "py${python.pythonVersion}.egg" fname;
         in
         builtins.filter (f: matchesVersion f.file && hasSupportedExtension f.file && isCompatibleEgg f.file) files;
-      toPath = s: pwd + "/${s}";
       isLocked = lib.length fileCandidates > 0;
       isSource = source != null;
       isGit = isSource && source.type == "git";
@@ -50,7 +52,7 @@ pythonPackages.callPackage
       isDirectory = isSource && source.type == "directory";
       isFile = isSource && source.type == "file";
       isLegacy = isSource && source.type == "legacy";
-      localDepPath = toPath source.url;
+      localDepPath = pwd + "/${source.url}";
 
       buildSystemPkgs =
         let
@@ -76,10 +78,10 @@ pythonPackages.callPackage
           # the `wheel` package cannot be built from a wheel, since that requires the wheel package
           # this causes a circular dependency so we special-case ignore its `preferWheel` attribute value
           entries = (if preferWheel' then binaryDist ++ sourceDist else sourceDist ++ binaryDist) ++ eggs;
-          lockFileEntry = (
+          lockFileEntry =
             if lib.length entries > 0 then builtins.head entries
             else throw "Missing suitable source/wheel file entry for ${name}"
-          );
+          ;
           _isEgg = isEgg lockFileEntry;
         in
         rec {
@@ -116,36 +118,42 @@ pythonPackages.callPackage
       ++ lib.optional (!pythonPackages.isPy27) hooks.poetry2nixPythonRequiresPatchHook
       ++ lib.optional (isLocked && (getManyLinuxDeps fileInfo.name).str != null) autoPatchelfHook
       ++ lib.optionals (format == "wheel") [
-        hooks.wheelUnpackHook
-        pythonPackages.pipInstallHook
-        pythonPackages.setuptools
+        pythonPackages.wheelUnpackHook
+        pythonPackages.pypaInstallHook
       ]
       ++ lib.optionals (format == "pyproject") [
         hooks.removePathDependenciesHook
         hooks.removeGitDependenciesHook
+        hooks.removeWheelUrlDependenciesHook
         hooks.pipBuildHook
       ];
 
-      buildInputs = (
-        lib.optional (isLocked) (getManyLinuxDeps fileInfo.name).pkg
-        ++ lib.optional isDirectory buildSystemPkgs
-        ++ lib.optional (stdenv.buildPlatform != stdenv.hostPlatform) pythonPackages.setuptools
-      );
+      buildInputs = lib.optional isLocked (getManyLinuxDeps fileInfo.name).pkg
+        ++ lib.optional isDirectory buildSystemPkgs;
 
       propagatedBuildInputs =
         let
           compat = isCompatible (poetryLib.getPythonVersion python);
           deps = lib.filterAttrs
-            (n: v: v)
+            (_: v: v)
             (
               lib.mapAttrs
                 (
-                  n: v:
+                  _: v:
                     let
                       constraints = v.python or "";
                       pep508Markers = v.markers or "";
                     in
-                    compat constraints && evalPep508 pep508Markers
+                    compat constraints && (if pep508Markers == "" then true else
+                    (pyproject-nix.lib.pep508.evalMarkers
+                      (pep508Env // {
+                        extra = {
+                          # All extras are always enabled
+                          type = "extra";
+                          value = lib.attrNames extras;
+                        };
+                      })
+                      (pyproject-nix.lib.pep508.parseMarkers pep508Markers)))
                 )
                 dependencies
             );
@@ -170,54 +178,60 @@ pythonPackages.callPackage
       # Interpreters should declare what wheel types they're compatible with (python type + ABI)
       # Here we can then choose a file based on that info.
       src =
-        if isGit then
-          (
-            builtins.fetchGit ({
-              inherit (source) url;
-              rev = source.resolved_reference or source.reference;
-              ref = sourceSpec.branch or (if sourceSpec ? tag then "refs/tags/${sourceSpec.tag}" else "HEAD");
-            } // (
-              lib.optionalAttrs
-                (((sourceSpec ? rev) || (sourceSpec ? branch) || (source ? resolved_reference) || (source ? reference))
-                  && (lib.versionAtLeast builtins.nixVersion "2.4"))
+        let
+          srcRoot =
+            if isGit then
+              (
+                builtins.fetchGit ({
+                  inherit (source) url;
+                  rev = source.resolved_reference or source.reference;
+                  ref = sourceSpec.branch or (if sourceSpec ? tag then "refs/tags/${sourceSpec.tag}" else "HEAD");
+                } // (
+                  lib.optionalAttrs
+                    (((sourceSpec ? rev) || (sourceSpec ? branch) || (source ? resolved_reference) || (source ? reference))
+                      && (lib.versionAtLeast builtins.nixVersion "2.4"))
+                    {
+                      allRefs = true;
+                    }) // (
+                  lib.optionalAttrs (lib.versionAtLeast builtins.nixVersion "2.4") {
+                    submodules = true;
+                  })
+                )
+              )
+            else if isWheelUrl then
+              builtins.fetchurl
                 {
-                  allRefs = true;
-                }) // (
-              lib.optionalAttrs (lib.versionAtLeast builtins.nixVersion "2.4") {
-                submodules = true;
-              })
-            )
-          )
-        else if isWheelUrl then
-          builtins.fetchurl
-            {
-              inherit (source) url;
-              sha256 = fileInfo.hash;
-            }
-        else if isUrl then
-          builtins.fetchTarball
-            {
-              inherit (source) url;
-              sha256 = fileInfo.hash;
-            }
-        else if isDirectory then
-          (poetryLib.cleanPythonSources { src = localDepPath; })
-        else if isFile then
-          localDepPath
-        else if isLegacy then
-          fetchFromLegacy
-            {
-              pname = name;
-              inherit python;
-              inherit (fileInfo) file hash;
-              inherit (source) url;
-            }
+                  inherit (source) url;
+                  sha256 = fileInfo.hash;
+                }
+            else if isUrl then
+              builtins.fetchTarball
+                {
+                  inherit (source) url;
+                  sha256 = fileInfo.hash;
+                }
+            else if isDirectory then
+              (poetryLib.cleanPythonSources { src = localDepPath; })
+            else if isFile then
+              localDepPath
+            else if isLegacy then
+              pyproject-nix.fetchers.fetchFromLegacy
+                {
+                  pname = name;
+                  inherit (fileInfo) file hash;
+                  inherit (source) url;
+                }
+            else
+              pyproject-nix.fetchers.fetchFromPypi {
+                pname = name;
+                inherit (fileInfo) file hash kind;
+                inherit version;
+              };
+        in
+        if source ? subdirectory then
+          srcRoot + "/${source.subdirectory}"
         else
-          fetchFromPypi {
-            pname = name;
-            inherit (fileInfo) file hash kind;
-            inherit version;
-          };
+          srcRoot;
     }
   )
 { }

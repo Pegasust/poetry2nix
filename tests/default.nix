@@ -4,18 +4,13 @@ in
 { pkgs ? import flake.inputs.nixpkgs {
     config = {
       allowAliases = false;
-      allowInsecurePredicate = x: true;
+      allowInsecurePredicate = _: true;
     };
     overlays = [ flake.overlay ];
   }
 }:
 let
-  poetry = pkgs.callPackage ../pkgs/poetry { python = pkgs.python3; inherit poetry2nix; };
   poetry2nix = import ./.. { inherit pkgs; };
-  poetryLib = import ../lib.nix { inherit pkgs; lib = pkgs.lib; stdenv = pkgs.stdenv; };
-  pep425 = pkgs.callPackage ../pep425.nix { inherit poetryLib; python = pkgs.python3; };
-  pep425PythonOldest = pkgs.callPackage ../pep425.nix { inherit poetryLib; python = pkgs.python38; };
-  pep425OSX = pkgs.callPackage ../pep425.nix { inherit poetryLib; isLinux = false; python = pkgs.python3; };
   callTest = test: attrs: pkgs.callPackage test ({ inherit poetry2nix; } // attrs);
 
   inherit (pkgs) lib stdenv;
@@ -24,7 +19,7 @@ in
 {
   trivial = callTest ./trivial { };
 
-  # Uses the updated Poetry 1.2.0 format
+  # Uses the updated 1.2.0 lockfile format
   trivial-poetry-1_2_0 = callTest ./trivial-poetry-1_2_0 { };
 
   legacy = callTest ./legacy { };
@@ -33,7 +28,7 @@ in
   override-default = callTest ./override-default-support { };
   common-pkgs-1 = callTest ./common-pkgs-1 { };
   common-pkgs-2 = callTest ./common-pkgs-2 { };
-  # pep425 = pkgs.callPackage ./pep425 { inherit pep425; inherit pep425OSX; inherit pep425PythonOldest; };
+
   env = callTest ./env { };
   pytest-metadata = callTest ./pytest-metadata { };
   pytest-randomly = callTest ./pytest-randomly { };
@@ -52,7 +47,6 @@ in
   preferWheel = callTest ./prefer-wheel { };
   prefer-wheels = callTest ./prefer-wheels { };
   closure-size = callTest ./closure-size {
-    inherit poetry;
     inherit (pkgs) postgresql;
   };
   extras = callTest ./extras { };
@@ -64,12 +58,15 @@ in
   inherit (poetry2nix) cli;
 
   ansible-molecule = callTest ./ansible-molecule { };
+  blinker-1_6_2 = callTest ./blinker-1_6_2 { };
+  blinker = callTest ./blinker { };
   bcrypt = callTest ./bcrypt { };
   mk-poetry-packages = callTest ./mk-poetry-packages { };
   markupsafe2 = callTest ./markupsafe2 { };
-  # uwsgi = callTest ./uwsgi { };  # Commented out because build is flaky (unrelated to poetry2nix)
+  mysqlclient = callTest ./mysqlclient { };
   jq = callTest ./jq { };
   ubersmith = callTest ./ubersmith { };
+  use-url-wheel = callTest ./use-url-wheel { };
   returns = callTest ./returns { };
   option = callTest ./option { };
   fastapi-utils = callTest ./fastapi-utils { };
@@ -79,25 +76,10 @@ in
   assorted-pkgs = callTest ./assorted-pkgs { };
   watchfiles = callTest ./watchfiles { };
   sqlalchemy = callTest ./sqlalchemy { };
+  sqlalchemy2 = callTest ./sqlalchemy2 { };
   tzlocal = callTest ./tzlocal { };
 
   ml-stack = callTest ./ml-stack { };
-
-  # Test building poetry
-  inherit poetry;
-
-  poetry-env =
-    let
-      env = poetry2nix.mkPoetryEnv {
-        projectDir = ../pkgs/poetry;
-        groups = [ "typing" ];
-      };
-    in
-    pkgs.runCommand "poetry-env-test" { } ''
-      ${env}/bin/python -c 'import requests'
-      ${env}/bin/python -c 'import mypy'
-      touch $out
-    '';
 
   dependency-groups = callTest ./dependency-groups { };
 
@@ -117,17 +99,23 @@ in
 
   affine = callTest ./affine { };
   affine-pre-2-4 = callTest ./affine-pre-2-4 { };
+  cdk-nag = callTest ./cdk-nag { };
+  arrow = callTest ./arrow { };
   gdal = callTest ./gdal { };
   gitlint-core = callTest ./gitlint-core { };
   gitlint = callTest ./gitlint { };
   jupyter-ydoc = callTest ./jupyter-ydoc { };
   mutmut = callTest ./mutmut { };
+  procrastinate = callTest ./procrastinate { };
   rasterio = callTest ./rasterio { };
   scientific = callTest ./scientific { };
   scipy1_9 = callTest ./scipy1_9 { };
   test-group = callTest ./test-group { };
   nbconvert-wheel = callTest ./nbconvert-wheel { };
   duckdb-wheel = callTest ./duckdb-wheel { };
+  shandy-sqlfmt = callTest ./shandy-sqlfmt { };
+  textual-dev = callTest ./textual-dev { };
+  textual-textarea = callTest ./textual-textarea { };
   fiona-source = callTest ./fiona-source { };
   fiona-wheel = callTest ./fiona-wheel { };
   shapely-wheel = callTest ./shapely-wheel { };
@@ -153,24 +141,24 @@ in
   rpds-py-no-wheel = callTest ./rpds-py-no-wheel { };
   contourpy-wheel = callTest ./contourpy-wheel { };
   contourpy-no-wheel = callTest ./contourpy-no-wheel { };
-
+  pytesseract = callTest ./pytesseract { };
+  sphinx5 = callTest ./sphinx5 { };
+  subdirectory = callTest ./subdirectory { };
 } // lib.optionalAttrs (!stdenv.isDarwin) {
-  # pyqt5 = (callTest ./pyqt5 { });
-
   # Test deadlocks on darwin, sandboxing issue?
-  dependency-environment = (callTest ./dependency-environment { });
+  dependency-environment = callTest ./dependency-environment { };
 
   # Editable tests fails on Darwin because of sandbox paths
-  pep600 = (callTest ./pep600 { });
-  editable = (callTest ./editable { });
-  editable-egg = (callTest ./editable-egg { });
-  pendulum = (callTest ./pendulum { });
+  pep600 = callTest ./pep600 { };
+  editable = callTest ./editable { };
+  editable-egg = callTest ./editable-egg { };
+  pendulum = callTest ./pendulum { };
 
   # Fails because of missing inputs on darwin
   text-generation-webui = callTest ./text-generation-webui { };
 
   # Cross tests fail on darwin for some strange reason:
   # ERROR: MarkupSafe-2.0.1-cp39-cp39-linux_aarch64.whl is not a supported wheel on this platform.
-  extended-cross = (callTest ./extended-cross { });
-  trivial-cross = (callTest ./trivial-cross { });
+  extended-cross = callTest ./extended-cross { };
+  trivial-cross = callTest ./trivial-cross { };
 }

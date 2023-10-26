@@ -1,4 +1,4 @@
-{ lib, pkgs, stdenv }:
+{ lib, pkgs, ... }:
 let
   inherit (import ./semver.nix { inherit lib ireplace; }) satisfiesSemver;
   inherit (builtins) genList length;
@@ -7,17 +7,6 @@ let
   ireplace = idx: value: list: (
     genList (i: if i == idx then value else (builtins.elemAt list i)) (length list)
   );
-
-  # Normalize package names as per PEP 503
-  normalizePackageName = name:
-    let
-      parts = builtins.split "[-_.]+" name;
-      partsWithoutSeparator = builtins.filter (x: builtins.typeOf x == "string") parts;
-    in
-    lib.strings.toLower (lib.strings.concatStringsSep "-" partsWithoutSeparator);
-
-  # Normalize an entire attrset of packages
-  normalizePackageSet = lib.attrsets.mapAttrs' (name: value: lib.attrsets.nameValuePair (normalizePackageName name) value);
 
   # Get a full semver pythonVersion from a python derivation
   getPythonVersion = python:
@@ -90,84 +79,6 @@ let
     else if lib.strings.hasInfix "manylinux_" f then { pkg = [ ml.manylinux2014 ]; str = "pep600"; }
     else { pkg = [ ]; str = null; };
 
-  # Predict URL from the PyPI index.
-  # Args:
-  #   pname: package name
-  #   file: filename including extension
-  #   hash: SRI hash
-  #   kind: Language implementation and version tag
-  predictURLFromPypi = lib.makeOverridable (
-    { pname, file, hash, kind }:
-    "https://files.pythonhosted.org/packages/${kind}/${lib.toLower (builtins.substring 0 1 file)}/${pname}/${file}"
-  );
-
-
-  # Fetch from the PyPI index.
-  # At first we try to fetch the predicated URL but if that fails we
-  # will use the Pypi API to determine the correct URL.
-  # Args:
-  #   pname: package name
-  #   file: filename including extension
-  #   version: the version string of the dependency
-  #   hash: SRI hash
-  #   kind: Language implementation and version tag
-  fetchFromPypi = lib.makeOverridable (
-    { pname, file, version, hash, kind, curlOpts ? "" }:
-    let
-      predictedURL = predictURLFromPypi { inherit pname file hash kind; };
-    in
-    (pkgs.stdenvNoCC.mkDerivation {
-      name = file;
-      nativeBuildInputs = [
-        pkgs.buildPackages.curl
-        pkgs.buildPackages.jq
-      ];
-      isWheel = lib.strings.hasSuffix "whl" file;
-      system = "builtin";
-
-      preferLocalBuild = true;
-      impureEnvVars = lib.fetchers.proxyImpureEnvVars ++ [
-        "NIX_CURL_FLAGS"
-      ];
-
-      inherit pname file version curlOpts predictedURL;
-
-      builder = ./fetch-from-pypi.sh;
-
-      outputHashMode = "flat";
-      outputHashAlgo = "sha256";
-      outputHash = hash;
-
-      passthru = {
-        urls = [ predictedURL ]; # retain compatibility with nixpkgs' fetchurl
-      };
-    })
-  );
-
-  fetchFromLegacy = lib.makeOverridable (
-    { python, pname, url, file, hash }:
-    let
-      pathParts =
-        (builtins.filter
-          ({ prefix, path }: "NETRC" == prefix)
-          builtins.nixPath);
-      netrc_file = if (pathParts != [ ]) then (builtins.head pathParts).path else "";
-    in
-    pkgs.runCommand file
-      {
-        nativeBuildInputs = [ python ];
-        impureEnvVars = lib.fetchers.proxyImpureEnvVars;
-        outputHashMode = "flat";
-        outputHashAlgo = "sha256";
-        outputHash = hash;
-        NETRC = netrc_file;
-        passthru.isWheel = lib.strings.hasSuffix "whl" file;
-      } ''
-      python ${./fetch_from_legacy.py} ${url} ${pname} ${file}
-      mv ${file} $out
-    ''
-  );
-
   getBuildSystemPkgs =
     { pythonPackages
     , pyProject
@@ -214,37 +125,15 @@ let
       };
     };
 
-  # Maps Nixpkgs CPU values to target machines known to be supported for manylinux* wheels.
-  # (a.k.a. `uname -m` output from CentOS 7)
-  #
-  # This is current as of manylinux2014 (PEP-0599), and is a superset of manylinux2010 / manylinux1.
-  # s390x is not supported in Nixpkgs, so we don't map it.
-  manyLinuxTargetMachines = {
-    x86_64 = "x86_64";
-    i686 = "i686";
-    aarch64 = "aarch64";
-    armv7l = "armv7l";
-    powerpc64 = "ppc64";
-    powerpc64le = "ppc64le";
-  };
-
-  # Machine tag for our target platform (if available)
-  getTargetMachine = stdenv: manyLinuxTargetMachines.${stdenv.targetPlatform.parsed.cpu.name} or null;
-
 in
 {
   inherit
-    fetchFromPypi
-    fetchFromLegacy
     getManyLinuxDeps
     isCompatible
     readTOML
     getBuildSystemPkgs
     satisfiesSemver
     cleanPythonSources
-    normalizePackageName
-    normalizePackageSet
     getPythonVersion
-    getTargetMachine
     ;
 }

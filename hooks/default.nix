@@ -1,23 +1,19 @@
-{ python
-, stdenv
-, buildPackages
-, makeSetupHook
-, wheel
-, pip
-, pkgs
-, lib
-,
-}:
+{ python, stdenv, makeSetupHook, pkgs, lib }:
 let
-  inherit (python.pythonForBuild.pkgs) callPackage;
-  pythonInterpreter = python.pythonForBuild.interpreter;
+  inherit (python) pythonForBuild;
+  inherit (pythonForBuild.pkgs) callPackage;
+  pythonInterpreter = pythonForBuild.interpreter;
   pythonSitePackages = python.sitePackages;
 
   nonOverlayedPython = pkgs.python3.pythonForBuild.withPackages (ps: [ ps.tomlkit ]);
   makeRemoveSpecialDependenciesHook =
     { fields
     , kind
-    ,
+      /*
+       * A script that takes in --fields-to-remove <fields, nargs="*">, transforms
+       * stdin pyproject.toml onto stdout pyproject.toml
+       */
+    , pyprojectPatchScript ? "${./pyproject-without-special-deps.py}"
     }:
     nonOverlayedPython.pkgs.callPackage
       (
@@ -30,7 +26,7 @@ let
               # because building of tomlkit and its dependencies also use these hooks.
               pythonPath = nonOverlayedPython.pkgs.makePythonPath [ nonOverlayedPython ];
               pythonInterpreter = nonOverlayedPython.interpreter;
-              pyprojectPatchScript = "${./pyproject-without-special-deps.py}";
+              inherit pyprojectPatchScript;
               inherit fields;
               inherit kind;
             };
@@ -54,13 +50,16 @@ in
     kind = "git";
   };
 
+  removeWheelUrlDependenciesHook = makeRemoveSpecialDependenciesHook {
+    fields = [ "url" ];
+    kind = "wheel-url";
+    pyprojectPatchScript = "${./pyproject-without-url-whl.py}";
+  };
+
   pipBuildHook =
     callPackage
       (
-        { pip
-        , wheel
-        ,
-        }:
+        { pip, wheel }:
         makeSetupHook
           ({
             name = "pip-build-hook.sh";
@@ -118,9 +117,7 @@ in
             '';
           };
 
-          pythonPath =
-            [ ]
-            ++ lib.optional (lib.versionOlder python.version "3.9") unparser;
+          pythonPath = lib.optional (lib.versionOlder python.version "3.9") unparser;
         in
         makeSetupHook
           {
@@ -131,20 +128,6 @@ in
             };
           }
           ./python-requires-patch-hook.sh
-      )
-      { };
-
-  # When the "wheel" package itself is a wheel the nixpkgs hook (which pulls in "wheel") leads to infinite recursion
-  # It doesn't _really_ depend on wheel though, it just copies the wheel.
-  wheelUnpackHook =
-    callPackage
-      (
-        _:
-        makeSetupHook
-          {
-            name = "wheel-unpack-hook.sh";
-          }
-          ./wheel-unpack-hook.sh
       )
       { };
 }
