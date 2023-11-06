@@ -20,8 +20,7 @@ let
   # 3. we maintain patches against pyproject.toml and cargo.toml to make the
   # source works, based on read version.
   exclude-broken-maturin = builtins.filter
-    ({ dep
-     , version
+    ({ version
      , ...
      }:
       lib.versionAtLeast version "3.8.2")
