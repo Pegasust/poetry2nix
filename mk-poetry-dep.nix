@@ -105,10 +105,6 @@ pythonPackages.callPackage
             if _isEgg then "egg"
             else if lib.strings.hasSuffix ".whl" name then "wheel"
             else "pyproject";
-          kind =
-            if _isEgg then python.pythonVersion
-            else if format == "pyproject" then "source"
-            else (builtins.elemAt (lib.strings.splitString "-" name) 2);
         };
 
       format = if isWheelUrl then "wheel" else if isDirectory || isGit || isUrl then "pyproject" else fileInfo.format;
@@ -237,7 +233,7 @@ pythonPackages.callPackage
             else
               pyproject-nix.fetchers.fetchFromPypi {
                 pname = name;
-                inherit (fileInfo) file hash kind;
+                inherit (fileInfo) file hash;
                 inherit version;
               };
         in
