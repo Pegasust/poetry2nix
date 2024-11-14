@@ -714,7 +714,7 @@ lib.composeManyExtensions [
       dbt-extractor = prev.dbt-extractor.overridePythonAttrs
         (
           old: {
-            nativeBuildInputs = old.nativeBuildInputs or [ ] ++ [ pkgs.cargo pkgs.rustc pkgs.maturin ];
+            nativeBuildInputs = old.nativeBuildInputs or [ ] ++ [ pkgs.maturinBuildHook ];
           }
         );
 
