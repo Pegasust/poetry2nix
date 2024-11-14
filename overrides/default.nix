@@ -3823,6 +3823,12 @@ lib.composeManyExtensions [
         }
       );
 
+      tantivy = prev.tantivy.overridePythonAttrs(
+        old: {
+          nativeBuildInputs = old.nativeBuildInputs or [ ] ++ [ pkgs.cargo pkgs.rustc pkgs.maturin ];
+        }
+      );
+
       tempora = prev.tempora.overridePythonAttrs (
         old: {
           # required for the extra "toml" dependency in setuptools_scm[toml]
