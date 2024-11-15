@@ -3824,8 +3824,28 @@ lib.composeManyExtensions [
       );
 
       tantivy = prev.tantivy.overridePythonAttrs(
-        old: {
-          nativeBuildInputs = old.nativeBuildInputs or [ ] ++ [ pkgs.cargo pkgs.rustc pkgs.maturin ];
+        old: let
+          # this is silly, if only there's a way to relax transitive dependencies
+          # to allow a bit of IFD magic
+          srcHash = {
+            # These are broken due to nixpkgs' Rust version being too "updated"
+            "0.22.0" = "sha256-GMfHwP9JI/7OsAV4/LK0CMrZlw4QKORNd10hX+AftOY=";
+            "0.21.0" = "sha256-wbWta+ka5ifeDH152pTugTHu1RpBd+gj4E2dz/R9Pmk=";
+          }.${old.version} or lib.fakeHash;
+        in {
+          cargoDeps = pkgs.rustPlatform.fetchCargoTarball {
+            inherit (old) src;
+            name = "${old.pname}-${old.version}-cargoDeps";
+            hash = srcHash;
+          };
+          nativeBuildInputs = old.nativeBuildInputs or [ ] ++ [
+            pkg-config
+            pkgs.rustPlatform.cargoSetupHook 
+            pkgs.rustPlatform.maturinBuildHook
+          ];
+          buildInputs = old.buildInputs or [ ] ++ lib.optionals stdenv.isDarwin [
+            pkgs.libiconv
+          ];
         }
       );
 

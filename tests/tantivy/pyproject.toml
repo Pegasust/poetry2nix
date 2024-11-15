@@ -1,0 +1,13 @@
+[tool.poetry]
+name = "test-tantivy"
+version = "0.1.0"
+description = "Test of python tantivy search package"
+authors = ["Pegasust <pegasucksgg@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+tantivy = "~0.21.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

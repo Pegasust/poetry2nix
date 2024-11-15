@@ -191,6 +191,7 @@ in
   cyclonedx-and-sarif-tools = callTest ./cyclonedx-and-sarif-tools { };
   propcache = callTest ./propcache { };
   shellcheck-py = callTest ./shellcheck-py { };
+  tantivy = callTest ./tantivy { };
 } // lib.optionalAttrs (!stdenv.isDarwin) {
   # Editable tests fails on Darwin because of sandbox paths
   pep600 = callTest ./pep600 { };
